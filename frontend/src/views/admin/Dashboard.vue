@@ -85,54 +85,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import api from '../../api'
+import { useArticleStore } from '../../stores/articles'
 
 const router = useRouter()
-
-const stats = reactive({
-  totalArticles: 0,
-  totalTags: 0,
-  recentArticles: 0
-})
-
-const recentArticles = ref([])
+const articleStore = useArticleStore()
+const { stats, recentArticles } = storeToRefs(articleStore)
 
 onMounted(() => {
-  fetchStats()
-  fetchRecentArticles()
+  articleStore.initDashboard()
 })
-
-async function fetchStats() {
-  try {
-    const [articlesRes, tagsRes] = await Promise.all([
-      api.get('/articles', { params: { page: 1, limit: 1000 } }),
-      api.get('/tags')
-    ])
-    
-    stats.totalArticles = articlesRes.data.pagination.total
-    stats.totalTags = tagsRes.data.tags.length
-    
-    // Calculate articles from this week
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-    stats.recentArticles = articlesRes.data.articles.filter(
-      a => new Date(a.created_at) > oneWeekAgo
-    ).length
-  } catch (error) {
-    console.error('Failed to fetch stats:', error)
-  }
-}
-
-async function fetchRecentArticles() {
-  try {
-    const response = await api.get('/articles', { params: { page: 1, limit: 5 } })
-    recentArticles.value = response.data.articles
-  } catch (error) {
-    console.error('Failed to fetch recent articles:', error)
-  }
-}
 
 function goToCreateArticle() {
   router.push('/admin/articles/new')
