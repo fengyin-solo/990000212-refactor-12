@@ -46,48 +46,27 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import api from '../../api'
+import { useArticleAdmin } from '../../composables/useArticleAdmin'
 import Pagination from '../../components/Pagination.vue'
 
 const router = useRouter()
 
-const articles = ref([])
-const loading = ref(false)
-const currentPage = ref(1)
-const pagination = ref({
-  total: 0,
-  page: 1,
-  limit: 10,
-  totalPages: 0
-})
+// 列表、分页、删除及失败恢复统一由共用处理维护
+const {
+  articles,
+  loading,
+  currentPage,
+  pagination,
+  loadArticles,
+  handlePageChange,
+  deleteArticle
+} = useArticleAdmin()
 
 onMounted(() => {
-  fetchArticles()
+  loadArticles()
 })
-
-async function fetchArticles() {
-  loading.value = true
-  try {
-    const response = await api.get('/articles', {
-      params: { page: currentPage.value, limit: pagination.value.limit }
-    })
-    articles.value = response.data.articles
-    pagination.value = response.data.pagination
-  } catch (error) {
-    console.error('Failed to fetch articles:', error)
-    ElMessage.error('获取文章列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-function handlePageChange(page) {
-  currentPage.value = page
-  fetchArticles()
-}
 
 function goToCreate() {
   router.push('/admin/articles/new')
@@ -95,29 +74,6 @@ function goToCreate() {
 
 function editArticle(id) {
   router.push(`/admin/articles/${id}/edit`)
-}
-
-async function deleteArticle(article) {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除文章「${article.title}」吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    await api.delete(`/articles/${article.id}`)
-    ElMessage.success('文章已删除')
-    fetchArticles()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Failed to delete article:', error)
-      ElMessage.error('删除文章失败')
-    }
-  }
 }
 
 function formatDate(dateStr) {
